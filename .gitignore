@@ -77,3 +77,6 @@ Thumbs.db
 # PyInstaller
 *.manifest
 *.spec
+
+# Alembic
+alembic/versions/*.pyc

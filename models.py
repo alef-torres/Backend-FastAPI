@@ -1,10 +1,8 @@
-from sqlalchemy import create_engine, Column, String, Integer, ForeignKey, Boolean, Float
-from sqlalchemy_util.types import ChoiceType
+from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, Float
+from sqlalchemy_utils.types import ChoiceType
 from sqlalchemy.orm import declarative_base
 
-db = create_engine("sqlite:///banco.db")
-
-Base = declarative_base(db)
+Base = declarative_base()
 
 
 class User(Base):
@@ -28,18 +26,18 @@ class User(Base):
 class Order(Base):
     __tablename__ = "orders"
 
-    STATUS_CHOICES = (
-        ("PENDENTE", "Pendente"),
-        ("CANCELADO", "Cancelado"),
-        ("FINALIZADO", "Finalizado")
-    )
+    # STATUS_CHOICES = (
+    #    ("PENDENTE", "Pendente"),
+    #    ("CANCELADO", "Cancelado"),
+    #    ("FINALIZADO", "Finalizado")
+    # )
 
     id = Column("id", Integer, primary_key=True, autoincrement=True)
-    status = Column("status", ChoiceType(choices=STATUS_CHOICES), default=STATUS_CHOICES[0][0])
+    status = Column("status", String)
     user_id = Column("user", Integer, ForeignKey("users.id"))
     price = Column("price", Float)
 
-    def __init__(self, user_id, status, price=0):
+    def __init__(self, user_id, status="PENDENTE", price=0):
         self.user_id = user_id
         self.status = status
         self.price = price
@@ -64,4 +62,3 @@ class ItemOrder(Base):
         self.price = price
         self.price_unit = price_unit
         self.order_id = order_id
-        
