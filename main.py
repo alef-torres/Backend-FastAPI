@@ -1,4 +1,9 @@
 from fastapi import FastAPI
+from database import engine, Base
+from passlib.context import CryptContext
+
+# Cria as tabelas no banco de dados se elas não existirem
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 

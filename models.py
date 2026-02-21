@@ -1,8 +1,6 @@
 from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, Float
 from sqlalchemy_utils.types import ChoiceType
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from database import Base
 
 
 class User(Base):
