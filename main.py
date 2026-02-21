@@ -1,11 +1,20 @@
+import os
+
 from fastapi import FastAPI
 from database import engine, Base
 from passlib.context import CryptContext
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # Cria as tabelas no banco de dados se elas não existirem
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
+bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 from auth_routes import auth_router
 from order_routes import order_router
