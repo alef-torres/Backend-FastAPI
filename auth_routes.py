@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
 from pydantic import BaseModel
 from main import bcrypt_context, ALGORITHM, ACCESS_TOKEN_EMPIRE_MINUTES, SECRET_KEY
@@ -11,10 +11,9 @@ from datetime import datetime, timedelta, timezone
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="auth/login-form")
 
 
-# Definindo um modelo Pydantic para receber os dados com segurança no corpo da requisição
 class UsuarioCreate(BaseModel):
     email: str
     senha: str
@@ -100,6 +99,22 @@ async def login(usuario_login: UsuarioLogin, db: Session = Depends(get_db)):
         refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7))
         return {"access_token": access_token,
                 "refresh_token": refresh_token,
+                "token_type": "bearer"}
+
+
+@auth_router.post("/login-form", status_code=status.HTTP_200_OK, tags=["auth"])
+async def login_form(dados_formulario: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    usuario = autenticar_usuario(dados_formulario.username, dados_formulario.password, db)
+    if not usuario:
+        raise HTTPException(
+
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Erro ao fazer login, usuário não existente"
+        )
+    else:
+        access_token = criar_token(usuario.id)
+        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7))
+        return {"access_token": access_token,
                 "token_type": "bearer"}
 
 
