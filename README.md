@@ -15,8 +15,11 @@ Este é um projeto de API para gerenciamento de pedidos, desenvolvido com FastAP
 - **Listar Pedidos:** 
   - Usuários comuns visualizam apenas seus próprios pedidos.
   - Administradores têm visão global de todos os pedidos no sistema.
+- **Visualizar Pedido:** Detalhes de um pedido específico (restrito ao dono ou admin).
+- **Listar por Usuário:** Permite filtrar pedidos de um usuário específico (Admin ou o próprio usuário).
 - **Adicionar Itens:** Adiciona produtos ao pedido com cálculo automático de subtotal.
 - **Remover Itens:** Remove produtos do pedido e atualiza o valor total automaticamente.
+- **Finalizar Pedido:** Altera o status para "FINALIZADO" (restrito ao dono).
 - **Cancelar Pedido:** Permite o cancelamento de pedidos pendentes (restrito ao dono ou admin).
 - **Cálculo Automático:** O sistema recalcula o valor total do pedido a cada alteração nos itens.
 

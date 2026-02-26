@@ -97,3 +97,41 @@ async def remover_item_ao_pedido(id_item_pedido: int,
         db.commit()
 
     return {"mensagem": "Item removido com sucesso"}
+
+
+@order_router.post("/finalizar/{id_pedido}", tags=["order"])
+async def finalizar_pedido(id_pedido: int, db: Session = Depends(get_db), user: User = Depends(verificar_token)):
+    pedido = db.query(Order).filter(Order.id == id_pedido).first()
+    if not pedido:
+        raise HTTPException(status_code=400, detail="Pedido não encontrado")
+    
+    # Verifica se o usuário é o dono do pedido
+    if user.id != pedido.user_id:
+        raise HTTPException(status_code=401, detail="Apenas o dono do pedido pode finalizá-lo")
+    
+    pedido.status = "FINALIZADO"
+    db.commit()
+    return {"message": "Pedido finalizado com sucesso", "status": pedido.status}
+
+
+@order_router.get("/{id_pedido}", tags=["order"])
+async def visualizar_pedido(id_pedido: int, db: Session = Depends(get_db), user: User = Depends(verificar_token)):
+    pedido = db.query(Order).filter(Order.id == id_pedido).first()
+    if not pedido:
+        raise HTTPException(status_code=400, detail="Pedido não encontrado")
+    
+    # Dono ou Admin podem visualizar
+    if not (user.admin or user.id == pedido.user_id):
+        raise HTTPException(status_code=401, detail="Sem autorização para visualizar este pedido")
+    
+    return {"pedido": pedido}
+
+
+@order_router.get("/usuario/{id_usuario}", tags=["order"])
+async def listar_pedidos_por_usuario(id_usuario: int, db: Session = Depends(get_db), user: User = Depends(verificar_token)):
+    # Admin pode ver de qualquer um, usuário comum apenas o seu próprio
+    if not user.admin and user.id != id_usuario:
+        raise HTTPException(status_code=401, detail="Sem autorização para ver pedidos de outro usuário")
+    
+    pedidos = db.query(Order).filter(Order.user_id == id_usuario).all()
+    return {"usuario_id": id_usuario, "pedidos": pedidos}
