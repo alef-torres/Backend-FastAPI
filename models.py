@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Integer, ForeignKey, Boolean, Float
 from sqlalchemy_utils.types import ChoiceType
+from sqlalchemy.orm import relationship
 from database import Base
 
 
@@ -34,11 +35,18 @@ class Order(Base):
     status = Column("status", String)
     user_id = Column("user", Integer, ForeignKey("users.id"))
     price = Column("price", Float)
+    itens = relationship("ItemOrder", back_populates="order", cascade="all, delete")
 
     def __init__(self, user_id, status="PENDENTE", price=0):
         self.user_id = user_id
         self.status = status
         self.price = price
+
+    def calcular_price(self):
+        preco_pedido = 0
+        for item in self.itens:
+            preco_item = item.price_unit * item.quantity
+            preco_pedido += preco_item
 
 
 class ItemOrder(Base):
