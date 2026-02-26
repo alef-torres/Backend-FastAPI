@@ -14,7 +14,6 @@ class ItemPedido(BaseModel):
     sabor: str
     tamanho: str
     preco_unitario: float
-    id_pedido: int
 
 
 @order_router.get("/", tags=["order"])
@@ -22,41 +21,37 @@ async def pedidos():
     return {"message": "Hello World"}
 
 
-class PedidoCreate(BaseModel):
-    id_usuario: int
-
-
 @order_router.post("/criar-pedido", tags=["order"])
-async def criar_pedido(pedido: PedidoCreate, db: Session = Depends(get_db)):
-    novo_pedido = Order(pedido.id_usuario)
+async def criar_pedido(db: Session = Depends(get_db), user: User = Depends(verificar_token)):
+    novo_pedido = Order(user_id=user.id)
     db.add(novo_pedido)
     db.commit()
     db.refresh(novo_pedido)
     return {"message": "Pedido criado com sucesso", "pedido_id": novo_pedido.id}
 
 
-@order_router.post(f"/cancelar-pedido/{id_pedido}", tags=["order"])
+@order_router.post("/cancelar-pedido/{id_pedido}", tags=["order"])
 async def cancelar_pedido(id_pedido: int, db: Session = Depends(get_db), user: User = Depends(verificar_token)):
     pedido = db.query(Order).filter(Order.id == id_pedido).first()
     if not pedido:
         raise HTTPException(status_code=400, detail="Pedido não encontrado")
-    if not user.admin or user.id != pedido.user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+    if not (user.admin or user.id == pedido.user_id):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sem autorização")
     pedido.status = "CANCELADO"
     db.commit()
-    return {}
+    return {"message": "Pedido cancelado com sucesso"}
 
 
 @order_router.get("/listar")
 async def listar_pedidos(db: Session = Depends(get_db), user: User = Depends(verificar_token)):
-    if not user.admin:
-        raise HTTPException(status_code=401, detail="Sem autorização")
-    else:
+    if user.admin:
         pedidos = db.query(Order).all()
+    else:
+        pedidos = db.query(Order).filter(Order.user_id == user.id).all()
     return {"pedidos": pedidos}
 
 
-@order_router.post("/pedido/adicionar{id_pedido}", tags=["order"])
+@order_router.post("/pedido/adicionar/{id_pedido}", tags=["order"])
 async def adicionar_item_ao_pedido(id_pedido: int,
                                    item_adicionar: ItemPedido,
                                    db: Session = Depends(get_db),
@@ -64,15 +59,41 @@ async def adicionar_item_ao_pedido(id_pedido: int,
     pedido = db.query(Order).filter(Order.id == id_pedido).first()
     if not pedido:
         raise HTTPException(status_code=400, detail="Pedido não encontrado")
-    elif not user.admin or user.id != pedido.user_id:
+    if not (user.admin or user.id == pedido.user_id):
         raise HTTPException(status_code=401, detail="Sem autorização")
-    item_pedido = ItemOrder(item_adicionar.quantidade,
-                            item_adicionar.sabor,
-                            item_adicionar.tamanho,
-                            item_adicionar.preco_unitario,
-                            id_pedido)
-    pedido.calcular_price()
+
+    item_pedido = ItemOrder(user_id=user.id,
+                            flavor=item_adicionar.sabor,
+                            quantity=item_adicionar.quantidade,
+                            size=item_adicionar.tamanho,
+                            price_unit=item_adicionar.preco_unitario,
+                            order_id=id_pedido)
     db.add(item_pedido)
     db.commit()
-    db.refresh(item_pedido)
-    return {"mensagem": "Pedido adicionado com sucesso"}
+    db.refresh(pedido)
+    pedido.calcular_price()
+    db.commit()
+    return {"mensagem": "Item adicionado com sucesso"}
+
+
+@order_router.post("/pedido/remover/{id_item_pedido}", tags=["order"])
+async def remover_item_ao_pedido(id_item_pedido: int,
+                                 db: Session = Depends(get_db),
+                                 user: User = Depends(verificar_token)):
+    item_pedido = db.query(ItemOrder).filter(ItemOrder.id == id_item_pedido).first()
+    if not item_pedido:
+        raise HTTPException(status_code=400, detail="Item não encontrado")
+
+    if not (user.admin or user.id == item_pedido.user_id):
+        raise HTTPException(status_code=401, detail="Sem autorização")
+
+    pedido_id = item_pedido.order_id
+    db.delete(item_pedido)
+    db.commit()
+
+    pedido = db.query(Order).filter(Order.id == pedido_id).first()
+    if pedido:
+        pedido.calcular_price()
+        db.commit()
+
+    return {"mensagem": "Item removido com sucesso"}

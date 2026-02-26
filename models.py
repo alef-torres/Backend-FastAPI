@@ -47,6 +47,7 @@ class Order(Base):
         for item in self.itens:
             preco_item = item.price_unit * item.quantity
             preco_pedido += preco_item
+        self.price = preco_pedido
 
 
 class ItemOrder(Base):
@@ -57,14 +58,17 @@ class ItemOrder(Base):
     flavor = Column("flavor", String)
     size = Column("size", String)
     price = Column("price", Float)
-    price_unit = Column("price_unit", String)
+    price_unit = Column("price_unit", Float)
     user_id = Column(Integer, ForeignKey("users.id"))
     order_id = Column(Integer, ForeignKey("orders.id"))
 
-    def __init__(self, user_id, quantity, size, price, price_unit, order_id):
+    order = relationship("Order", back_populates="itens")
+
+    def __init__(self, user_id, flavor, quantity, size, price_unit, order_id):
         self.user_id = user_id
+        self.flavor = flavor
         self.quantity = quantity
         self.size = size
-        self.price = price
         self.price_unit = price_unit
+        self.price = price_unit * quantity
         self.order_id = order_id
